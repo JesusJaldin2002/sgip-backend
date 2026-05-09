@@ -5,18 +5,26 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinTech.API.Repositories.Implementations;
 
-public class TransactionRepository(ApplicationDbContext ctx) : ITransactionRepository
+public class TransactionRepository(ApplicationDbContext ctx, ILogger<TransactionRepository> logger) : ITransactionRepository
 {
     private readonly ApplicationDbContext _ctx = ctx;
+    private readonly ILogger<TransactionRepository> _logger = logger;
 
-    public async Task<Transaction?> GetByIdAsync(Guid id) =>
-        await _ctx.Transactions.FindAsync(id);
+    public async Task<Transaction?> GetByIdAsync(Guid id)
+    {
+        _logger.LogDebug("Consultando transaccion {TransactionId}", id);
+        return await _ctx.Transactions.FindAsync(id);
+    }
 
-    public async Task<Transaction?> GetByIdempotencyKeyAsync(string key) =>
-        await _ctx.Transactions.FirstOrDefaultAsync(t => t.IdempotencyKey == key);
+    public async Task<Transaction?> GetByIdempotencyKeyAsync(string key)
+    {
+        _logger.LogDebug("Verificando idempotency key={Key}", key);
+        return await _ctx.Transactions.FirstOrDefaultAsync(t => t.IdempotencyKey == key);
+    }
 
     public async Task<IEnumerable<Transaction>> GetAllAsync(string? type = null, string? status = null)
     {
+        _logger.LogDebug("Listando transacciones (tipo={Type}, estado={Status})", type ?? "todos", status ?? "todos");
         var query = _ctx.Transactions.AsQueryable();
         if (!string.IsNullOrEmpty(type))
             query = query.Where(t => t.Type.ToString() == type);
@@ -27,6 +35,7 @@ public class TransactionRepository(ApplicationDbContext ctx) : ITransactionRepos
 
     public async Task<Transaction> CreateAsync(Transaction transaction)
     {
+        _logger.LogDebug("Persistiendo transaccion con key={Key}", transaction.IdempotencyKey);
         _ctx.Transactions.Add(transaction);
         await _ctx.SaveChangesAsync();
         return transaction;

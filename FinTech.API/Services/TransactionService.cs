@@ -6,17 +6,21 @@ using FinTech.API.Services.Interfaces;
 
 namespace FinTech.API.Services;
 
-public class TransactionService(ITransactionRepository repo) : ITransactionService
+public class TransactionService(ITransactionRepository repo, ILogger<TransactionService> logger) : ITransactionService
 {
     private readonly ITransactionRepository _repo = repo;
+    private readonly ILogger<TransactionService> _logger = logger;
 
     public async Task<TransactionResponseDto> CreateTransactionAsync(CreateTransactionDto dto)
     {
-        // Idempotencia: si ya existe la key, retornar la original sin crear una nueva
         var existing = await _repo.GetByIdempotencyKeyAsync(dto.IdempotencyKey);
         if (existing != null)
+        {
+            _logger.LogInformation("Idempotencia: key={Key} ya existe, retornando transaccion {TransactionId}", dto.IdempotencyKey, existing.Id);
             return MapToResponse(existing);
+        }
 
+        _logger.LogInformation("Creando transaccion: tipo={Type}, monto={Amount}, key={Key}", dto.Type, dto.Amount, dto.IdempotencyKey);
         var transaction = new Transaction
         {
             IdempotencyKey = dto.IdempotencyKey,
@@ -28,6 +32,7 @@ public class TransactionService(ITransactionRepository repo) : ITransactionServi
         };
 
         var created = await _repo.CreateAsync(transaction);
+        _logger.LogInformation("Transaccion {TransactionId} creada con estado {Status}", created.Id, created.Status);
         return MapToResponse(created);
     }
 

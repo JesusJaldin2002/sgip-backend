@@ -8,10 +8,11 @@ using FinTech.API.Services.Strategies;
 
 namespace FinTech.API.Services;
 
-public class LoanService(ILoanRepository loanRepo, ITransactionService txService) : ILoanService
+public class LoanService(ILoanRepository loanRepo, ITransactionService txService, ILogger<LoanService> logger) : ILoanService
 {
     private readonly ILoanRepository _loanRepo = loanRepo;
     private readonly ITransactionService _txService = txService;
+    private readonly ILogger<LoanService> _logger = logger;
     private const decimal DefaultTEA = 0.24m;
 
     private static ILoanCalculationStrategy GetStrategy(LoanType loanType) => loanType switch
@@ -24,6 +25,7 @@ public class LoanService(ILoanRepository loanRepo, ITransactionService txService
     {
         var tea = dto.InterestRate ?? DefaultTEA;
         var strategy = GetStrategy(dto.LoanType);
+        _logger.LogDebug("Calculando simulacion con estrategia {Strategy}, TEA={TEA}", strategy.GetType().Name, tea);
         var monthlyPayment = strategy.CalculateMonthlyPayment(dto.Amount, tea, dto.Term);
         var schedule = strategy.GenerateSchedule(dto.Amount, tea, dto.Term, DateTime.UtcNow);
 
@@ -51,16 +53,26 @@ public class LoanService(ILoanRepository loanRepo, ITransactionService txService
         var tea = dto.InterestRate ?? DefaultTEA;
 
         var activeLoans = (await _loanRepo.GetActiveByUserIdAsync(dto.UserId)).ToList();
+        _logger.LogInformation("Usuario {UserId} tiene {Count} prestamos activos", dto.UserId, activeLoans.Count);
 
         if (activeLoans.Count >= 3)
+        {
+            _logger.LogWarning("Usuario {UserId} supero el limite de 3 prestamos activos", dto.UserId);
             throw new InvalidOperationException("El cliente no puede tener mas de 3 prestamos activos.");
+        }
 
         var strategy = GetStrategy(dto.LoanType);
         var monthlyPayment = strategy.CalculateMonthlyPayment(dto.Amount, tea, dto.Term);
 
         var totalMonthly = activeLoans.Sum(l => l.MonthlyPayment) + monthlyPayment;
+        _logger.LogInformation("Suma de cuotas mensuales: {Total} (limite 40% de {Income} = {Limit})",
+            Math.Round(totalMonthly, 2), dto.MonthlyIncome, Math.Round(dto.MonthlyIncome * 0.40m, 2));
+
         if (totalMonthly > dto.MonthlyIncome * 0.40m)
+        {
+            _logger.LogWarning("Usuario {UserId} supero el 40% de capacidad de pago", dto.UserId);
             throw new InvalidOperationException("La suma de cuotas supera el 40% de los ingresos mensuales.");
+        }
 
         var loan = new Loan
         {
@@ -73,14 +85,19 @@ public class LoanService(ILoanRepository loanRepo, ITransactionService txService
             MonthlyIncome = dto.MonthlyIncome
         };
 
-        // Aprobacion automatica: monto < $10,000 y menos de 2 prestamos activos
         if (dto.Amount < 10000 && activeLoans.Count < 2)
+        {
             loan.Status = LoanStatus.Approved;
+            _logger.LogInformation("Aprobacion automatica: monto={Amount} < $10000 y prestamos activos={Count} < 2", dto.Amount, activeLoans.Count);
+        }
+        else
+        {
+            _logger.LogInformation("Prestamo queda en estado Pending (requiere aprobacion manual)");
+        }
 
         var created = await _loanRepo.CreateAsync(loan);
 
         var scheduleEntries = strategy.GenerateSchedule(dto.Amount, tea, dto.Term, DateTime.UtcNow);
-
         var schedules = scheduleEntries.Select(s => new PaymentSchedule
         {
             LoanId = created.Id,
@@ -93,6 +110,7 @@ public class LoanService(ILoanRepository loanRepo, ITransactionService txService
         });
 
         await _loanRepo.SaveScheduleAsync(schedules);
+        _logger.LogDebug("Cronograma de {Term} cuotas guardado para prestamo {LoanId}", dto.Term, created.Id);
 
         if (created.Status == LoanStatus.Approved)
             await CreateDisbursementAsync(created);
@@ -130,10 +148,14 @@ public class LoanService(ILoanRepository loanRepo, ITransactionService txService
             ?? throw new KeyNotFoundException("Prestamo no encontrado.");
 
         if (loan.Status != LoanStatus.Pending)
+        {
+            _logger.LogWarning("Intento de aprobar prestamo {LoanId} en estado {Status}", id, loan.Status);
             throw new InvalidOperationException("Solo se pueden aprobar prestamos en estado Pending.");
+        }
 
         loan.Status = LoanStatus.Approved;
         var updated = await _loanRepo.UpdateAsync(loan);
+        _logger.LogInformation("Prestamo {LoanId} aprobado manualmente", id);
         await CreateDisbursementAsync(updated);
         return MapToResponse(updated);
     }
@@ -144,15 +166,20 @@ public class LoanService(ILoanRepository loanRepo, ITransactionService txService
             ?? throw new KeyNotFoundException("Prestamo no encontrado.");
 
         if (loan.Status != LoanStatus.Pending)
+        {
+            _logger.LogWarning("Intento de rechazar prestamo {LoanId} en estado {Status}", id, loan.Status);
             throw new InvalidOperationException("Solo se pueden rechazar prestamos en estado Pending.");
+        }
 
         loan.Status = LoanStatus.Rejected;
         var updated = await _loanRepo.UpdateAsync(loan);
+        _logger.LogInformation("Prestamo {LoanId} rechazado", id);
         return MapToResponse(updated);
     }
 
     private async Task CreateDisbursementAsync(Loan loan)
     {
+        _logger.LogInformation("Creando transaccion de desembolso para prestamo {LoanId} por ${Amount}", loan.Id, loan.Amount);
         await _txService.CreateTransactionAsync(new CreateTransactionDto
         {
             IdempotencyKey = $"disbursement-{loan.Id}",

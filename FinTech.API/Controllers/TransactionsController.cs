@@ -6,16 +6,19 @@ namespace FinTech.API.Controllers;
 
 [ApiController]
 [Route("api/transactions")]
-public class TransactionsController(ITransactionService svc) : ControllerBase
+public class TransactionsController(ITransactionService svc, ILogger<TransactionsController> logger) : ControllerBase
 {
     private readonly ITransactionService _svc = svc;
+    private readonly ILogger<TransactionsController> _logger = logger;
 
     /// <summary>Crea una transaccion. Si el IdempotencyKey ya existe, retorna la original.</summary>
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateTransactionDto dto)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
+        _logger.LogInformation("Solicitud de transaccion recibida: tipo={Type}, monto={Amount}, key={Key}", dto.Type, dto.Amount, dto.IdempotencyKey);
         var result = await _svc.CreateTransactionAsync(dto);
+        _logger.LogInformation("Transaccion {TransactionId} procesada", result.Id);
         return Ok(result);
     }
 
@@ -23,6 +26,7 @@ public class TransactionsController(ITransactionService svc) : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? type, [FromQuery] string? status)
     {
+        _logger.LogInformation("Listando transacciones (tipo={Type}, estado={Status})", type ?? "todos", status ?? "todos");
         var result = await _svc.GetTransactionsAsync(type, status);
         return Ok(result);
     }
@@ -31,7 +35,13 @@ public class TransactionsController(ITransactionService svc) : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
+        _logger.LogInformation("Consultando transaccion {TransactionId}", id);
         var result = await _svc.GetByIdAsync(id);
-        return result == null ? NotFound() : Ok(result);
+        if (result == null)
+        {
+            _logger.LogWarning("Transaccion {TransactionId} no encontrada", id);
+            return NotFound();
+        }
+        return Ok(result);
     }
 }

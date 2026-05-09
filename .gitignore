@@ -9,6 +9,7 @@ obj/
 appsettings.Development.json
 
 # Logs
+logs/
 *.log
 
 # Cobertura de tests

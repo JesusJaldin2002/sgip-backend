@@ -18,4 +18,6 @@ public class SimulateLoanDto
 
     [Range(0.18, 0.35, ErrorMessage = "La tasa debe estar entre 18% y 35%")]
     public decimal? InterestRate { get; set; }
+
+    public DateTime? StartDate { get; set; }
 }

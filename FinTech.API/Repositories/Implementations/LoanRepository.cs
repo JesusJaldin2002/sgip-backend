@@ -32,7 +32,7 @@ public class LoanRepository(ApplicationDbContext ctx, ILogger<LoanRepository> lo
     {
         _logger.LogDebug("Consultando prestamos activos de usuario {UserId}", userId);
         return await _ctx.Loans
-            .Where(l => l.UserId == userId && l.Status == LoanStatus.Active)
+            .Where(l => l.UserId == userId && l.Status != LoanStatus.Rejected)
             .ToListAsync();
     }
 

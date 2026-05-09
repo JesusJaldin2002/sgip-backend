@@ -1,8 +1,11 @@
 using FinTech.API.Data;
+using FinTech.API.Models;
+using FinTech.API.Models.Enums;
 using FinTech.API.Repositories.Implementations;
 using FinTech.API.Repositories.Interfaces;
 using FinTech.API.Services;
 using FinTech.API.Services.Interfaces;
+using FinTech.API.Services.Strategies;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using System.Text.Json.Serialization;
@@ -57,11 +60,12 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Aplicar migraciones automaticamente al arrancar
+// Aplicar migraciones y generar cronogramas faltantes al arrancar
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await db.Database.MigrateAsync();
+    await SeedSchedulesAsync(db);
 }
 
 app.UseSwagger();
@@ -72,3 +76,38 @@ app.UseAuthorization();
 app.MapControllers();
 
 await app.RunAsync();
+
+// Genera cronogramas de pago para prestamos que no los tienen (seed data o importaciones)
+static async Task SeedSchedulesAsync(ApplicationDbContext db)
+{
+    var loansWithoutSchedule = await db.Loans
+        .Where(l => !db.PaymentSchedules.Any(p => p.LoanId == l.Id))
+        .ToListAsync();
+
+    if (loansWithoutSchedule.Count == 0) return;
+
+    Log.Information("Generando cronogramas para {Count} prestamo(s) sin schedule", loansWithoutSchedule.Count);
+
+    foreach (var loan in loansWithoutSchedule)
+    {
+        ILoanCalculationStrategy strategy = loan.LoanType == LoanType.Decreasing
+            ? new DecreasingLoanStrategy()
+            : new FixedLoanStrategy();
+
+        var entries = strategy.GenerateSchedule(loan.Amount, loan.InterestRate, loan.Term, loan.CreatedAt);
+
+        db.PaymentSchedules.AddRange(entries.Select(e => new PaymentSchedule
+        {
+            LoanId = loan.Id,
+            PaymentNumber = e.PaymentNumber,
+            DueDate = e.DueDate,
+            TotalPayment = e.TotalPayment,
+            Principal = e.Principal,
+            Interest = e.Interest,
+            RemainingBalance = e.RemainingBalance
+        }));
+    }
+
+    await db.SaveChangesAsync();
+    Log.Information("Cronogramas generados correctamente");
+}

@@ -24,7 +24,9 @@ if (!string.IsNullOrEmpty(databaseUrl))
 {
     var uri = new Uri(databaseUrl);
     var userInfo = uri.UserInfo.Split(':');
-    connStr = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
+    var noSsl = Environment.GetEnvironmentVariable("DB_NO_SSL") == "true";
+    var sslPart = noSsl ? "SSL Mode=Disable" : "SSL Mode=Require;Trust Server Certificate=true";
+    connStr = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};{sslPart}";
 }
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

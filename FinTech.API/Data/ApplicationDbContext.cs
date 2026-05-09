@@ -55,6 +55,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         var loan1Id = Guid.Parse("11111111-1111-1111-1111-111111111111");
         var loan2Id = Guid.Parse("22222222-2222-2222-2222-222222222222");
+        var loan3Id = Guid.Parse("33333333-3333-3333-3333-333333333333");
+        var loan4Id = Guid.Parse("44444444-4444-4444-4444-444444444444");
+        var loan5Id = Guid.Parse("55555555-5555-5555-5555-555555555555");
         var seedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         modelBuilder.Entity<Loan>().HasData(
@@ -83,6 +86,51 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 Status = LoanStatus.Pending,
                 MonthlyPayment = 422.31m,
                 MonthlyIncome = 4000m,
+                CreatedAt = seedDate,
+                UpdatedAt = seedDate
+            },
+            // user-003: prestamo rechazado — para demostrar estado Rejected
+            new Loan
+            {
+                Id = loan3Id,
+                UserId = "user-003",
+                Amount = 15000m,
+                Term = 36,
+                InterestRate = 0.24m,
+                LoanType = LoanType.Fixed,
+                Status = LoanStatus.Rejected,
+                MonthlyPayment = 570.57m,
+                MonthlyIncome = 5000m,
+                CreatedAt = seedDate,
+                UpdatedAt = seedDate
+            },
+            // user-004: prestamo activo pequeno — para probar auto-aprobacion del segundo prestamo
+            new Loan
+            {
+                Id = loan4Id,
+                UserId = "user-004",
+                Amount = 3000m,
+                Term = 12,
+                InterestRate = 0.24m,
+                LoanType = LoanType.Fixed,
+                Status = LoanStatus.Active,
+                MonthlyPayment = 280.36m,
+                MonthlyIncome = 2000m,
+                CreatedAt = seedDate,
+                UpdatedAt = seedDate
+            },
+            // user-005: prestamo pendiente de monto alto — requiere aprobacion manual
+            new Loan
+            {
+                Id = loan5Id,
+                UserId = "user-005",
+                Amount = 9500m,
+                Term = 18,
+                InterestRate = 0.24m,
+                LoanType = LoanType.Fixed,
+                Status = LoanStatus.Pending,
+                MonthlyPayment = 623.07m,
+                MonthlyIncome = 4500m,
                 CreatedAt = seedDate,
                 UpdatedAt = seedDate
             }

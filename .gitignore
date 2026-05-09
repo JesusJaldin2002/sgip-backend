@@ -1,0 +1,21 @@
+# Build
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+
+appsettings.Development.json
+
+# Logs
+*.log
+
+# Cobertura de tests
+coverage/
+TestResults/
+*.coverage
+*.coveragexml
+
+# Publicacion
+publish/

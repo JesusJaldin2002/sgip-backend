@@ -18,5 +18,8 @@ TestResults/
 *.coverage
 *.coveragexml
 
+# Variables de entorno locales
+.env
+
 # Publicacion
 publish/

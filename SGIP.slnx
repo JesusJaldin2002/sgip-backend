@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="FinTech.API/FinTech.API.csproj" />
+  <Project Path="FinTech.Tests/FinTech.Tests.csproj" />
+</Solution>

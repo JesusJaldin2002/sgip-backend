@@ -27,7 +27,10 @@ public class LoanService(ILoanRepository loanRepo, ITransactionService txService
         var strategy = GetStrategy(dto.LoanType);
         _logger.LogDebug("Calculando simulacion con estrategia {Strategy}, TEA={TEA}", strategy.GetType().Name, tea);
         var monthlyPayment = strategy.CalculateMonthlyPayment(dto.Amount, tea, dto.Term);
-        var schedule = strategy.GenerateSchedule(dto.Amount, tea, dto.Term, DateTime.UtcNow);
+        var startDate = dto.StartDate.HasValue
+            ? DateTime.SpecifyKind(dto.StartDate.Value, DateTimeKind.Utc)
+            : DateTime.UtcNow;
+        var schedule = strategy.GenerateSchedule(dto.Amount, tea, dto.Term, startDate);
 
         return new SimulationResponseDto
         {
@@ -87,7 +90,7 @@ public class LoanService(ILoanRepository loanRepo, ITransactionService txService
 
         if (dto.Amount < 10000 && activeLoans.Count < 2)
         {
-            loan.Status = LoanStatus.Approved;
+            loan.Status = LoanStatus.Active;
             _logger.LogInformation("Aprobacion automatica: monto={Amount} < $10000 y prestamos activos={Count} < 2", dto.Amount, activeLoans.Count);
         }
         else
@@ -112,7 +115,7 @@ public class LoanService(ILoanRepository loanRepo, ITransactionService txService
         await _loanRepo.SaveScheduleAsync(schedules);
         _logger.LogDebug("Cronograma de {Term} cuotas guardado para prestamo {LoanId}", dto.Term, created.Id);
 
-        if (created.Status == LoanStatus.Approved)
+        if (created.Status == LoanStatus.Active)
             await CreateDisbursementAsync(created);
 
         return MapToResponse(created);
@@ -153,7 +156,7 @@ public class LoanService(ILoanRepository loanRepo, ITransactionService txService
             throw new InvalidOperationException("Solo se pueden aprobar prestamos en estado Pending.");
         }
 
-        loan.Status = LoanStatus.Approved;
+        loan.Status = LoanStatus.Active;
         var updated = await _loanRepo.UpdateAsync(loan);
         _logger.LogInformation("Prestamo {LoanId} aprobado manualmente", id);
         await CreateDisbursementAsync(updated);

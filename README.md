@@ -116,12 +116,13 @@ dotnet test FinTech.Tests/FinTech.Tests.csproj
 dotnet test FinTech.Tests/FinTech.Tests.csproj --collect:"XPlat Code Coverage"
 ```
 
-**Tests incluidos (12 en total):**
+**Tests incluidos (22 en total):**
 
 | Suite | Tests | Qué verifica |
 |---|---|---|
 | `FinancialCalculatorTests` | 4 | Cuota fija ≈ $467 (±$1), count = term, saldo final = 0, TEM en rango |
 | `LoanValidationTests` | 4 | Tasa minima/máxima, monto mínimo/máximo |
+| `LoanServiceTests` | 10 | Max 3 préstamos activos, cap 40% ingreso, auto-aprobación, desembolso automático, aprobar/rechazar con validaciones |
 | `TransactionIdempotencyTests` | 1 | Duplicate key retorna original y nunca llama CreateAsync |
 | `TransactionStatusTests` | 3 | Pending → Completed (sin LoanId), Pending → Completed (LoanId válido), Pending → Failed (LoanId inexistente) |
 

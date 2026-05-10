@@ -9,6 +9,9 @@ public class CreateTransactionDto
     public string IdempotencyKey { get; set; } = string.Empty;
 
     [Required]
+    public string UserId { get; set; } = string.Empty;
+
+    [Required]
     public TransactionType? Type { get; set; }
 
     [Required]

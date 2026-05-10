@@ -27,6 +27,7 @@ public class TransactionService(
         var transaction = new Transaction
         {
             IdempotencyKey = dto.IdempotencyKey,
+            UserId = dto.UserId,
             Type = dto.Type,
             Amount = dto.Amount,
             LoanId = dto.LoanId,
@@ -68,8 +69,8 @@ public class TransactionService(
         }
     }
 
-    public async Task<IEnumerable<TransactionResponseDto>> GetTransactionsAsync(string? type, string? status) =>
-        (await _repo.GetAllAsync(type, status)).Select(MapToResponse);
+    public async Task<IEnumerable<TransactionResponseDto>> GetTransactionsAsync(string? type, string? status, string? userId = null) =>
+        (await _repo.GetAllAsync(type, status, userId)).Select(MapToResponse);
 
     public async Task<TransactionResponseDto?> GetByIdAsync(Guid id)
     {
@@ -81,6 +82,7 @@ public class TransactionService(
     {
         Id = t.Id,
         IdempotencyKey = t.IdempotencyKey ?? string.Empty,
+        UserId = t.UserId,
         Type = t.Type.ToString() ?? string.Empty,
         Amount = t.Amount,
         Status = t.Status.ToString() ?? string.Empty,

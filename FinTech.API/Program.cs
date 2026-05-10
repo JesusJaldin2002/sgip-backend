@@ -133,10 +133,10 @@ static async Task SeedSchedulesAsync(ApplicationDbContext db)
 // Inserta transacciones de ejemplo solo si no existen (idempotente por clave)
 static async Task SeedTransactionsAsync(ApplicationDbContext db)
 {
-    const string marker = "seed-disbursement-loan1";
+    const string marker = "seed-transactions-v2";
     if (await db.Transactions.AnyAsync(t => t.IdempotencyKey == marker)) return;
 
-    Log.Information("Insertando transacciones de ejemplo");
+    Log.Information("Insertando transacciones de ejemplo (v2 con userId)");
 
     var loan1Id = Guid.Parse("11111111-1111-1111-1111-111111111111");
     var loan4Id = Guid.Parse("44444444-4444-4444-4444-444444444444");
@@ -148,6 +148,7 @@ static async Task SeedTransactionsAsync(ApplicationDbContext db)
         {
             Id = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
             IdempotencyKey = marker,
+            UserId = "user-001",
             Type = TransactionType.Disbursement,
             Amount = 5000m,
             Status = TransactionStatus.Completed,
@@ -155,11 +156,12 @@ static async Task SeedTransactionsAsync(ApplicationDbContext db)
             Description = "Desembolso del prestamo 11111111",
             CreatedAt = seedDate
         },
-        // Pago completado de cuota mensual
+        // Pago completado de cuota mensual de user-001
         new Transaction
         {
             Id = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
-            IdempotencyKey = "seed-payment-loan1-cuota1",
+            IdempotencyKey = "seed-payment-loan1-cuota1-v2",
+            UserId = "user-001",
             Type = TransactionType.Payment,
             Amount = 474.03m,
             Status = TransactionStatus.Completed,
@@ -167,11 +169,12 @@ static async Task SeedTransactionsAsync(ApplicationDbContext db)
             Description = "Pago cuota 1",
             CreatedAt = seedDate.AddMonths(1)
         },
-        // Pago fallido (loan inexistente al momento del procesamiento)
+        // Pago fallido de user-001
         new Transaction
         {
             Id = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc"),
-            IdempotencyKey = "seed-payment-failed",
+            IdempotencyKey = "seed-payment-failed-v2",
+            UserId = "user-001",
             Type = TransactionType.Payment,
             Amount = 474.03m,
             Status = TransactionStatus.Failed,
@@ -179,11 +182,12 @@ static async Task SeedTransactionsAsync(ApplicationDbContext db)
             Description = "Pago fallido — prestamo no encontrado",
             CreatedAt = seedDate.AddMonths(1).AddDays(3)
         },
-        // Transferencia completada sin prestamo asociado
+        // Transferencia completada de user-002
         new Transaction
         {
             Id = Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd"),
-            IdempotencyKey = "seed-transfer-001",
+            IdempotencyKey = "seed-transfer-001-v2",
+            UserId = "user-002",
             Type = TransactionType.Transfer,
             Amount = 200m,
             Status = TransactionStatus.Completed,
@@ -191,11 +195,12 @@ static async Task SeedTransactionsAsync(ApplicationDbContext db)
             Description = "Transferencia entre cuentas",
             CreatedAt = seedDate.AddMonths(1).AddDays(5)
         },
-        // Pago pendiente (estado transitorio demostrado en seed)
+        // Pago pendiente de user-001
         new Transaction
         {
             Id = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"),
-            IdempotencyKey = "seed-payment-pending",
+            IdempotencyKey = "seed-payment-pending-v2",
+            UserId = "user-001",
             Type = TransactionType.Payment,
             Amount = 474.03m,
             Status = TransactionStatus.Pending,
@@ -207,7 +212,8 @@ static async Task SeedTransactionsAsync(ApplicationDbContext db)
         new Transaction
         {
             Id = Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff"),
-            IdempotencyKey = "seed-disbursement-loan4",
+            IdempotencyKey = "seed-disbursement-loan4-v2",
+            UserId = "user-004",
             Type = TransactionType.Disbursement,
             Amount = 3000m,
             Status = TransactionStatus.Completed,

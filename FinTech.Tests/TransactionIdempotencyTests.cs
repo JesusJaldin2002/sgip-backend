@@ -34,6 +34,7 @@ public class TransactionIdempotencyTests
         var dto = new CreateTransactionDto
         {
             IdempotencyKey = "test-key-123",
+            UserId = "user-001",
             Type = TransactionType.Payment,
             Amount = 999m
         };

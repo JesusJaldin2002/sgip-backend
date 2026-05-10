@@ -9,6 +9,7 @@ public class Transaction
     public TransactionType? Type { get; set; }
     public decimal Amount { get; set; }
     public TransactionStatus Status { get; set; } = TransactionStatus.Pending;
+    public string? UserId { get; set; }
     public Guid? LoanId { get; set; }
     public string? Description { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

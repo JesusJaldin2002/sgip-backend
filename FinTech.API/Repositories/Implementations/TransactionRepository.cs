@@ -22,10 +22,12 @@ public class TransactionRepository(ApplicationDbContext ctx, ILogger<Transaction
         return await _ctx.Transactions.FirstOrDefaultAsync(t => t.IdempotencyKey == key);
     }
 
-    public async Task<IEnumerable<Transaction>> GetAllAsync(string? type = null, string? status = null)
+    public async Task<IEnumerable<Transaction>> GetAllAsync(string? type = null, string? status = null, string? userId = null)
     {
-        _logger.LogDebug("Listando transacciones (tipo={Type}, estado={Status})", type ?? "todos", status ?? "todos");
+        _logger.LogDebug("Listando transacciones (tipo={Type}, estado={Status}, usuario={UserId})", type ?? "todos", status ?? "todos", userId ?? "todos");
         var query = _ctx.Transactions.AsQueryable();
+        if (!string.IsNullOrEmpty(userId))
+            query = query.Where(t => t.UserId == userId);
         if (!string.IsNullOrEmpty(type))
             query = query.Where(t => t.Type.ToString() == type);
         if (!string.IsNullOrEmpty(status))

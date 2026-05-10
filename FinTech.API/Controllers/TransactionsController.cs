@@ -40,23 +40,24 @@ public class TransactionsController(ITransactionService svc, ILogger<Transaction
         return Ok(result);
     }
 
-    /// <summary>Lista transacciones con filtros opcionales por tipo y estado.</summary>
+    /// <summary>Lista transacciones con filtros opcionales por usuario, tipo y estado.</summary>
     /// <remarks>
-    /// Los filtros son acumulativos (AND). Si se omiten ambos, retorna todas las transacciones
+    /// Los filtros son acumulativos (AND). Si se omiten todos, retorna todas las transacciones
     /// ordenadas por fecha descendente.
     ///
     /// Valores validos para <c>type</c>: <c>Disbursement</c>, <c>Payment</c>, <c>Transfer</c>.
     ///
     /// Valores validos para <c>status</c>: <c>Pending</c>, <c>Completed</c>, <c>Failed</c>.
     /// </remarks>
+    /// <param name="userId">ID del usuario propietario de las transacciones. Opcional.</param>
     /// <param name="type">Tipo de transaccion. Opcional.</param>
     /// <param name="status">Estado de la transaccion. Opcional.</param>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<TransactionResponseDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll([FromQuery] string? type, [FromQuery] string? status)
+    public async Task<IActionResult> GetAll([FromQuery] string? userId, [FromQuery] string? type, [FromQuery] string? status)
     {
-        _logger.LogInformation("Listando transacciones (tipo={Type}, estado={Status})", type ?? "todos", status ?? "todos");
-        var result = await _svc.GetTransactionsAsync(type, status);
+        _logger.LogInformation("Listando transacciones (usuario={UserId}, tipo={Type}, estado={Status})", userId ?? "todos", type ?? "todos", status ?? "todos");
+        var result = await _svc.GetTransactionsAsync(type, status, userId);
         return Ok(result);
     }
 

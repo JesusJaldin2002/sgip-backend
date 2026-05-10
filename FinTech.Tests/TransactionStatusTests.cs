@@ -35,6 +35,7 @@ public class TransactionStatusTests
         var dto = new CreateTransactionDto
         {
             IdempotencyKey = Guid.NewGuid().ToString(),
+            UserId = "user-001",
             Type = TransactionType.Payment,
             Amount = 300m
         };
@@ -57,6 +58,7 @@ public class TransactionStatusTests
         var dto = new CreateTransactionDto
         {
             IdempotencyKey = Guid.NewGuid().ToString(),
+            UserId = "user-001",
             Type = TransactionType.Payment,
             Amount = 467m,
             LoanId = loanId
@@ -79,6 +81,7 @@ public class TransactionStatusTests
         var dto = new CreateTransactionDto
         {
             IdempotencyKey = Guid.NewGuid().ToString(),
+            UserId = "user-001",
             Type = TransactionType.Payment,
             Amount = 467m,
             LoanId = invalidLoanId

@@ -186,6 +186,7 @@ public class LoanService(ILoanRepository loanRepo, ITransactionService txService
         await _txService.CreateTransactionAsync(new CreateTransactionDto
         {
             IdempotencyKey = $"disbursement-{loan.Id}",
+            UserId = loan.UserId,
             Type = TransactionType.Disbursement,
             Amount = loan.Amount,
             LoanId = loan.Id,

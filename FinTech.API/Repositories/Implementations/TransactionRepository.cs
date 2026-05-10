@@ -40,4 +40,12 @@ public class TransactionRepository(ApplicationDbContext ctx, ILogger<Transaction
         await _ctx.SaveChangesAsync();
         return transaction;
     }
+
+    public async Task<Transaction> UpdateAsync(Transaction transaction)
+    {
+        _logger.LogDebug("Actualizando transaccion {TransactionId} a estado {Status}", transaction.Id, transaction.Status);
+        _ctx.Transactions.Update(transaction);
+        await _ctx.SaveChangesAsync();
+        return transaction;
+    }
 }

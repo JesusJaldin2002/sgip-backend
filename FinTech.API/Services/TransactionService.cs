@@ -6,9 +6,13 @@ using FinTech.API.Services.Interfaces;
 
 namespace FinTech.API.Services;
 
-public class TransactionService(ITransactionRepository repo, ILogger<TransactionService> logger) : ITransactionService
+public class TransactionService(
+    ITransactionRepository repo,
+    ILoanRepository loanRepo,
+    ILogger<TransactionService> logger) : ITransactionService
 {
     private readonly ITransactionRepository _repo = repo;
+    private readonly ILoanRepository _loanRepo = loanRepo;
     private readonly ILogger<TransactionService> _logger = logger;
 
     public async Task<TransactionResponseDto> CreateTransactionAsync(CreateTransactionDto dto)
@@ -20,7 +24,6 @@ public class TransactionService(ITransactionRepository repo, ILogger<Transaction
             return MapToResponse(existing);
         }
 
-        _logger.LogInformation("Creando transaccion: tipo={Type}, monto={Amount}, key={Key}", dto.Type, dto.Amount, dto.IdempotencyKey);
         var transaction = new Transaction
         {
             IdempotencyKey = dto.IdempotencyKey,
@@ -28,12 +31,41 @@ public class TransactionService(ITransactionRepository repo, ILogger<Transaction
             Amount = dto.Amount,
             LoanId = dto.LoanId,
             Description = dto.Description,
-            Status = TransactionStatus.Completed
+            Status = TransactionStatus.Pending
         };
 
-        var created = await _repo.CreateAsync(transaction);
-        _logger.LogInformation("Transaccion {TransactionId} creada con estado {Status}", created.Id, created.Status);
-        return MapToResponse(created);
+        await _repo.CreateAsync(transaction);
+        _logger.LogInformation("Transaccion {TransactionId} creada con estado Pending", transaction.Id);
+
+        var finalStatus = await ProcessAsync(transaction);
+        transaction.Status = finalStatus;
+        await _repo.UpdateAsync(transaction);
+
+        _logger.LogInformation("Transaccion {TransactionId} resuelta a {Status}", transaction.Id, finalStatus);
+        return MapToResponse(transaction);
+    }
+
+    private async Task<TransactionStatus> ProcessAsync(Transaction transaction)
+    {
+        try
+        {
+            if (transaction.LoanId.HasValue)
+            {
+                var loan = await _loanRepo.GetByIdAsync(transaction.LoanId.Value);
+                if (loan == null)
+                {
+                    _logger.LogWarning("Transaccion {TransactionId}: LoanId {LoanId} no encontrado", transaction.Id, transaction.LoanId);
+                    return TransactionStatus.Failed;
+                }
+            }
+
+            return TransactionStatus.Completed;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error procesando transaccion {TransactionId}", transaction.Id);
+            return TransactionStatus.Failed;
+        }
     }
 
     public async Task<IEnumerable<TransactionResponseDto>> GetTransactionsAsync(string? type, string? status) =>

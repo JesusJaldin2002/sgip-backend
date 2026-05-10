@@ -27,7 +27,9 @@ public class TransactionIdempotencyTests
         mockRepo.Setup(r => r.GetByIdempotencyKeyAsync("test-key-123"))
                 .ReturnsAsync(existingTx);
 
-        var service = new TransactionService(mockRepo.Object, NullLogger<TransactionService>.Instance);
+        var mockLoanRepo = new Mock<ILoanRepository>();
+
+        var service = new TransactionService(mockRepo.Object, mockLoanRepo.Object, NullLogger<TransactionService>.Instance);
 
         var dto = new CreateTransactionDto
         {

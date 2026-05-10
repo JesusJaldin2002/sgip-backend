@@ -49,7 +49,24 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new() { Title = "SGIP API", Version = "v1", Description = "Sistema de Gestion de Prestamos" });
+    c.SwaggerDoc("v1", new()
+    {
+        Title = "SGIP API",
+        Version = "v1",
+        Description = """
+            Sistema de Gestion de Inversiones y Prestamos (SGIP).
+
+            Reglas de negocio principales:
+            - Monto: $500 – $50,000 | Plazo: 6 – 60 meses | TEA: 18% – 35% (default 24%)
+            - Max 3 prestamos activos por usuario
+            - La suma de cuotas no puede exceder el 40% del ingreso mensual
+            - Auto-aprobacion: monto < $10,000 y menos de 2 prestamos activos
+            - Idempotencia en transacciones via IdempotencyKey unico
+            """
+    });
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
 });
 
 builder.Services.AddCors(options =>

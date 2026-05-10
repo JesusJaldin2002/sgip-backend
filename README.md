@@ -8,8 +8,8 @@ Sistema de Gestión de Inversiones y Préstamos. API REST construida con .NET 10
 
 | Servicio | URL |
 |---|---|
-| **API (Railway)** | `https://sgip-backend-production.up.railway.app` |
-| **Swagger UI** | `https://sgip-backend-production.up.railway.app/swagger` |
+| **API (Railway)** | `https://sgip-backend.up.railway.app` |
+| **Swagger UI** | `https://sgip-backend.up.railway.app/swagger` |
 
 > No requiere autenticación. Usuarios de prueba: `user-001` a `user-005`.
 >
